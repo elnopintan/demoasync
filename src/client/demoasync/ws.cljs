@@ -1,19 +1,23 @@
 (ns demoasync.ws
-  (:require [cljs.core.async :refer [<! >! chan put!]])
+  (:require [cljs.core.async :refer [<! put! chan]])
   (:require-macros
   [cljs.core.async.macros :as m :refer [go go-loop]]))
 
-
-(defn twitter-chan []
+(defn ws-chan [uri]
   (let [in (chan)
-        ws (new js/WebSocket "ws://localhost:8080")]
+        out (chan)
+        ws (new js/WebSocket uri)]
        (set! (.-onmessage ws)
-             (fn [event] (go (>! in (.-data event))
-                             (.send ws "next"))))
-    in))
+             (fn [event]
+              (put! in (.-data event))))
+       (set! (.-onopen ws)
+             (fn []
+               (go-loop []
+                   (.send ws (<! out))
+                   (recur))))
+    [in out]))
 
 
-(defn ^:export tweets []
-  (let [ws-in (twitter-chan)]
-    (go-loop [] (js/alert (<! ws-in))(recur))))
+
+
 

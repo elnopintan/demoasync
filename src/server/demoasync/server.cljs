@@ -1,5 +1,5 @@
 (ns demoasync.server
-  (:require [cljs.core.async :refer [<! >! chan put!]])
+  (:require [cljs.core.async :refer [<! >! chan put! close!]])
   (:require-macros
   [cljs.core.async.macros :as m :refer [ go go-loop]]))
 
@@ -23,7 +23,10 @@
                  (.log js/console "Req received")
                  (doto conn
                    (.on "message"
-                      (fn [msg] (put! in msg))))
+
+                      (fn [msg]
+                        (.log js/console (str "Received " msg))
+                        (put! in msg))))
                  (go-loop []
                        (.send conn (<! out))
                        (recur))
@@ -41,7 +44,8 @@
                         (.log js/console (str d))
                         (put! out d)))
                 (.on r "error" (fn [d]
-                    (.log js/console "Error" (str d))))))]
+                    (.log js/console "Error" (str d))))
+                (.on r "end" (fn [] (close! out)))))]
     (go-loop []
              (let [v (<! in)]
                (case v
@@ -71,9 +75,14 @@
    }})
 
 (defn search-channel [query token]
-  (get-channel {:host "api.twitter.com"
+  (let [in (get-channel {:host "api.twitter.com"
                 :path (str "/1.1/search/tweets.json?q=" query )
-                :headers {:Authorization (str "Bearer " token)}}))
+                :headers {:Authorization (str "Bearer " token)}})]
+    (go-loop [buf ""]
+      (let [data (<! in)]
+         (if data
+            (recur (str buf data))
+            buf)))))
 
 (defn twitter-key []
   (-> js/process .-env (aget "TWITTER_KEY")))
@@ -91,11 +100,13 @@
           (>! auth-in "grant_type=client_credentials")
           (>! auth-in :end)
           (let [{tok "access_token"} (js->clj (JSON/parse (str (<! auth-out ))))
-                tweet-chan (search-channel "clojure" tok)]
+                tweet-chan ]
             (loop []
-              (>! out (str (<! tweet-chan)))
-              (<! in)
-              (recur))))))
+               (.log js/console "Listening ws")
+               (<! in)
+               (.log js/console "Listened")
+               (>! out (<! (search-channel "clojure" tok)))
+               (recur))))))
 
 
 (ws (server 8080) twitter-stream)
