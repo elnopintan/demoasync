@@ -102,10 +102,7 @@
           (let [{tok "access_token"} (js->clj (JSON/parse (str (<! auth-out ))))
                 tweet-chan ]
             (loop []
-               (.log js/console "Listening ws")
-               (<! in)
-               (.log js/console "Listened")
-               (>! out (<! (search-channel "clojure" tok)))
+               (>! out (<! (search-channel (.-utf8Data (<! in)) tok)))
                (recur))))))
 
 

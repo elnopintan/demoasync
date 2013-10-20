@@ -10,11 +10,11 @@
          word (-> (status "text") (.split " "))]
     word))
 
-(defn tweet-channel []
+(defn tweet-channel [search]
   (let [out (chan)
         [ws-in ws-out] (ws-chan  "ws://localhost:8080")]
     (go-loop []
-          (>! ws-out "a")
+          (>! ws-out search)
           (.log js/console "Receiving")
           (let [words (to-chan (tweet-seq (<! ws-in)))]
             (<! (blocking-pipe words out)))

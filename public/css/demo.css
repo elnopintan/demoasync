@@ -1,0 +1,23 @@
+.word {
+  position: absolute;
+  background-color:grey;
+}
+
+.word > span.pressed {
+  color: yellow;
+}
+
+#score {
+  position:absolute;
+  top: 600px;
+  left: 600px
+}
+
+#line {
+  position:absolute;
+  top: 500px;
+  width: 1000px;
+  border: solid;
+  height: 1px;
+
+}
