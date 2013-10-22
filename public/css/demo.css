@@ -1,6 +1,6 @@
 .word {
   position: absolute;
-  background-color:grey;
+  background-color:#ddd;
 }
 
 .word > span.pressed {

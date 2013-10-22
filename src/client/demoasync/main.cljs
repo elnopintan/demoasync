@@ -1,11 +1,11 @@
 (ns demoasync.main
-  (:require [cljs.core.async :refer [<! >! chan put! to-chan timeout alts!]]
+  (:require [cljs.core.async :refer [<! >! chan put! to-chan timeout ]]
             [demoasync.twitter :refer [tweet-channel]]
             [demoasync.keys :refer [key-chan]]
             [dommy.utils :as utils]
             [dommy.core :as dommy])
   (:require-macros
-    [cljs.core.async.macros :as m :refer [go-loop]]
+    [cljs.core.async.macros :as m :refer [go-loop alt!]]
     [dommy.macros :refer [node sel sel1]]))
 
 (defn char-span [l]
@@ -21,43 +21,72 @@
     )
     score-chan))
 
-(defn mark-pressed [k char-map]
-  (doseq [[_ elem] (filter (fn [[c _]] (= c k)) char-map)]
-         (dommy/add-class! elem "pressed")))
+(defn mark-pressed! [span]
+   (dommy/add-class! span "pressed"))
 
 (defn update-pos [word pos]
   (dommy/set-style! word :top (str pos "px")))
 
-(defn word-node [char-map]
+(defn word-node [char-spans]
   (node [:div.word
           {:style
             {:left (str (* 1000 (js/Math.random)) "px")
              :top "0px"}}
-         (map (fn [[_ span]]  span) char-map)]))
+         (map (fn [[_ span]]  span) char-spans)]))
 
-(defn scoring [char-map text]
-  (if (empty? char-map) (count text) (- (count char-map))))
+
+(defprotocol FallProto
+  (fall-down! [this])
+  (key-pressed! [this k])
+  (scoring [this])
+  (delete? [this])
+  (delete! [this]))
+
+(defrecord FallingWord [text pos delta timer char-spans word]
+  FallProto
+  (fall-down! [this]
+    (let [new-pos (+ pos delta)]
+     (dommy/set-style! word :top (str new-pos "px"))
+      (-> this
+        (assoc :pos new-pos)
+        (assoc :timer (timeout 50)))))
+  (key-pressed! [this k]
+    (let [[char-value span] (first char-spans)]
+      (if (= k char-value)
+        (do (mark-pressed! span) (update-in this [:char-spans] rest))
+        this)))
+  (scoring [this]
+           (if (empty? char-spans)
+             (count text)
+             (- (count char-spans))))
+  (delete? [this]
+           (or (empty? char-spans) (> pos 500)))
+  (delete! [this]
+           (dommy/remove! word)))
+
+(defn new-falling-word [ctx text]
+  (let [char-spans (map char-span text)
+        word (word-node char-spans)]
+      (dommy/append! ctx word)
+      (FallingWord.
+         text
+         0
+         (+ 2 (js/Math.random))
+         (timeout 50)
+         char-spans
+         word)))
 
 (defn word-div [ctx score text]
-  (let [char-map (into {} (map char-span text))
-        word (word-node char-map)
-        vel (+ 2 (js/Math.random))
-        [key-channel off] (key-chan)]
-    (dommy/append! ctx word)
-    (go-loop [pos 0 timer (timeout 50) char-map char-map]
-      (if (or (empty? char-map) (> pos 500))
-        (do
-          (dommy/remove! word)
-          (>! score (scoring char-map text))
-          (>! off "off"))
-        (let [[value channel] (alts! [timer key-channel])]
-            (cond
-              (= channel timer)
-               (do (update-pos word pos)
-                   (recur (+ pos vel) (timeout 50) char-map))
-              :default
-               (do (mark-pressed value char-map)
-                   (recur pos timer (dissoc char-map value)))))))))
+    (let [[key-channel off] (key-chan)]
+      (go-loop [falling-word (new-falling-word ctx text)]
+        (if (delete? falling-word)
+          (do
+            (delete! falling-word)
+            (>! score (scoring falling-word))
+            (>! off "off"))
+          (recur (alt!
+             (:timer falling-word) ([_] (fall-down! falling-word))
+             key-channel ([value] (key-pressed! falling-word value))))))))
 
 (defn ^:export tweets []
   (let [body (sel1 :body)

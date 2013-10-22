@@ -8,5 +8,5 @@
      (let [next-v (<! from)]
        (if next-v
          (do (>! to next-v) (recur))
-         nil))))
+         :done))))
 
