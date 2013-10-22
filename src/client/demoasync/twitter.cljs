@@ -7,7 +7,8 @@
 
 (defn tweet-seq [text]
   (for [ status (-> text JSON/parse js->clj (get "statuses"))
-         word (-> (status "text") (.split " "))]
+         word (-> (status "text") (.split " "))
+         :when (re-matches #"\w+" word)]
     word))
 
 (defn tweet-channel [search]

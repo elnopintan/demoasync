@@ -76,7 +76,7 @@
 
 (defn search-channel [query token]
   (let [in (get-channel {:host "api.twitter.com"
-                :path (str "/1.1/search/tweets.json?q=" query )
+                :path (str "/1.1/search/tweets.json?lang=eu&q=" query )
                 :headers {:Authorization (str "Bearer " token)}})]
     (go-loop [buf ""]
       (let [data (<! in)]

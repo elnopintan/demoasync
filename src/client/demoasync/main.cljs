@@ -17,8 +17,7 @@
     (dommy/append! (sel1 :body) score)
     (go-loop [current 0]
        (dommy/set-text! score current)
-       (recur (+ current (<! score-chan )))
-    )
+       (recur (+ current (<! score-chan ))))
     score-chan))
 
 (defn mark-pressed! [span]
@@ -42,14 +41,12 @@
   (delete? [this])
   (delete! [this]))
 
-(defrecord FallingWord [text pos delta timer char-spans word]
+(defrecord FallingWord [text pos delta char-spans word]
   FallProto
   (fall-down! [this]
     (let [new-pos (+ pos delta)]
      (dommy/set-style! word :top (str new-pos "px"))
-      (-> this
-        (assoc :pos new-pos)
-        (assoc :timer (timeout 50)))))
+     (assoc this :pos new-pos)))
   (key-pressed! [this k]
     (let [[char-value span] (first char-spans)]
       (if (= k char-value)
@@ -72,25 +69,25 @@
          text
          0
          (+ 2 (js/Math.random))
-         (timeout 50)
          char-spans
          word)))
 
 (defn word-div [ctx score text]
     (let [[key-channel off] (key-chan)]
-      (go-loop [falling-word (new-falling-word ctx text)]
+      (go-loop [[falling-word timer]
+                [(new-falling-word ctx text) (timeout 50)]]
         (if (delete? falling-word)
           (do
             (delete! falling-word)
             (>! score (scoring falling-word))
             (>! off "off"))
           (recur (alt!
-             (:timer falling-word) ([_] (fall-down! falling-word))
-             key-channel ([value] (key-pressed! falling-word value))))))))
+             timer ([_] [(fall-down! falling-word) (timeout 50)])
+             key-channel ([value] [(key-pressed! falling-word value) timer])))))))
 
 (defn ^:export tweets []
   (let [body (sel1 :body)
-        words (tweet-channel "codemotion")
+        words (tweet-channel "devcon2013")
         score (score-div)]
     (go-loop []
       (<! (timeout 1000))
