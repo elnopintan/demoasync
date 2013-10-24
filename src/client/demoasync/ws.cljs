@@ -9,13 +9,13 @@
         ws (new js/WebSocket uri)]
        (set! (.-onmessage ws)
              (fn [event]
-              (put! in (.-data event))))
+              (put! out (.-data event))))
        (set! (.-onopen ws)
              (fn []
                (go-loop []
-                   (.send ws (<! out))
+                   (.send ws (<! in))
                    (recur))))
-    [in out]))
+    [out in]))
 
 
 

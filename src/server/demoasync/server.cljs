@@ -23,7 +23,6 @@
                  (.log js/console "Req received")
                  (doto conn
                    (.on "message"
-
                       (fn [msg]
                         (.log js/console (str "Received " msg))
                         (put! in msg))))
@@ -53,13 +52,13 @@
                    (.write req v)))
              (recur))
 
-    [in out]))
+    [out in]))
 
 
 (defn get-channel [options]
   (let [[in out] (http-channel (assoc options :method "GET"))]
-    (go (>! in :end))
-  out))
+    (go (>! out :end))
+  in))
 
 (defn post-channel [options]
   (http-channel (assoc options :method "POST")))
@@ -97,9 +96,9 @@
          (auth-options (twitter-key) (twitter-secret)))]
         (go
           (.log js/console (str "Key " (twitter-key)))
-          (>! auth-in "grant_type=client_credentials")
-          (>! auth-in :end)
-          (let [{tok "access_token"} (js->clj (JSON/parse (str (<! auth-out ))))
+          (>! auth-out "grant_type=client_credentials")
+          (>! auth-out :end)
+          (let [{tok "access_token"} (js->clj (JSON/parse (str (<! auth-in))))
                 tweet-chan ]
             (loop []
                (>! out (<! (search-channel (.-utf8Data (<! in)) tok)))
