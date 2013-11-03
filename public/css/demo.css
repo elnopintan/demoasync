@@ -1,23 +1,47 @@
 .word {
   position: absolute;
-  background-color:#ddd;
+  font-family: monospace;
+  font-size: 1.77em;
 }
 
 .word > span.pressed {
   color: yellow;
 }
 
+.game > .word {
+  position: absolute;
+  font-family: monospace;
+  font-size: 1.77em;
+  background-color: rgba(228,228,228,1);
+
+}
+
+.game > .word > span.pressed {
+  color: yellow;
+}
+
 #score {
   position:absolute;
-  top: 600px;
-  left: 600px
+  top: 20%;
+  left: 90%;
+  font-size: 2.77em;
+
 }
 
 #line {
   position:absolute;
-  top: 500px;
-  width: 1000px;
+  top: 800px;
+  width: 100%;
   border: solid;
   height: 1px;
 
+}
+
+body.game {
+
+}
+
+#game {
+  height: 440px;
+  width: 900px;
 }

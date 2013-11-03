@@ -13,6 +13,7 @@
        (set! (.-onopen ws)
              (fn []
                (go-loop []
+                   (.log js/console "In loop")
                    (.send ws (<! in))
                    (recur))))
     [out in]))

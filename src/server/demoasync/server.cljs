@@ -40,11 +40,12 @@
         req (.request https (clj->js options)
                (fn [r]
                 (.on r "data" (fn [d]
-                        (.log js/console (str d))
+                        (.log js/console (str "Data " d))
                         (put! out d)))
                 (.on r "error" (fn [d]
                     (.log js/console "Error" (str d))))
                 (.on r "end" (fn [] (close! out)))))]
+    (.on req "error" (fn [d] (.log js/console "Client error")))
     (go-loop []
              (let [v (<! in)]
                (case v
@@ -75,7 +76,7 @@
 
 (defn search-channel [query token]
   (let [in (get-channel {:host "api.twitter.com"
-                :path (str "/1.1/search/tweets.json?lang=eu&q=" query )
+                :path (str "/1.1/search/tweets.json?lang=eu&count=50&q=" query )
                 :headers {:Authorization (str "Bearer " token)}})]
     (go-loop [buf ""]
       (let [data (<! in)]
@@ -95,14 +96,14 @@
         (post-channel
          (auth-options (twitter-key) (twitter-secret)))]
         (go
-          (.log js/console (str "Key " (twitter-key)))
           (>! auth-out "grant_type=client_credentials")
           (>! auth-out :end)
           (let [{tok "access_token"} (js->clj (JSON/parse (str (<! auth-in))))
                 tweet-chan ]
             (loop []
+              (.log js/console "Sending  ")
                (>! out (<! (search-channel (.-utf8Data (<! in)) tok)))
                (recur))))))
 
 
-(ws (server 8080) twitter-stream)
+(ws (server 9090) twitter-stream)

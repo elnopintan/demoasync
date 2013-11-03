@@ -21,5 +21,7 @@
         :source-paths ["src/client"]
         :compiler {
           :output-to "public/js/main.js"  ; default: target/cljsbuild-main.js
+          ; :source-map "public/js/main.js.map"
           :optimizations :simple
-          :pretty-print true}}]})
+          ; :pretty-print true
+          }}]})

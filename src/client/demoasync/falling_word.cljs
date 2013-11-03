@@ -7,10 +7,10 @@
 (defn char-span [l]
   [l (node [:span l])])
 
-(defn word-node [char-spans]
+(defn word-node [char-spans width]
   (node [:div.word
           {:style
-            {:left (str (* 1000 (js/Math.random)) "px")
+            {:left (str (* width (js/Math.random)) "px")
              :top "0px"}}
          (map (fn [[_ span]]  span) char-spans)]))
 
@@ -27,7 +27,7 @@
   (delete? [this])
   (delete! [this]))
 
-(defrecord FallingWord [text pos delta char-spans word]
+(defrecord FallingWord [text pos delta char-spans height word]
   FallProto
   (fall-down! [this]
     (let [new-pos (+ pos delta)]
@@ -43,17 +43,18 @@
              (count text)
              (- (count char-spans))))
   (delete? [this]
-           (or (empty? char-spans) (> pos 500)))
+           (or (empty? char-spans) (> pos height)))
   (delete! [this]
            (dommy/remove! word)))
 
-(defn new-falling-word [ctx text]
+(defn new-falling-word [ctx text width height]
   (let [char-spans (map char-span text)
-        word (word-node char-spans)]
+        word (word-node char-spans width)]
       (dommy/append! ctx word)
       (FallingWord.
          text
          0
          (+ 2 (js/Math.random))
          char-spans
+         height
          word)))
